@@ -1,0 +1,32 @@
+/* EpiNav prototype — base styles only. New components use inline styles. */
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  background-color: #0B1628;
+  color: #E2E8F0;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+#root {
+  height: 100%;
+  width: 100%;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.screen-enter {
+  animation: fadeIn 0.28s ease-out;
+}

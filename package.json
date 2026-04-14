@@ -1,0 +1,27 @@
+{
+  "name": "epinav-prototype",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "EpiNav CAP Assessment — Trajectory Navigation Prototype. KCL/UCL MSc Healthcare Technologies 2025-26.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@niivue/niivue": "^0.68.1",
+    "lucide-react": "^0.383.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "three": "^0.164.1"
+  },
+  "devDependencies": {
+    "@types/three": "^0.164.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.4",
+    "vite": "^5.3.1"
+  }
+}
