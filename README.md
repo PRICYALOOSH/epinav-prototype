@@ -15,8 +15,11 @@ a final trajectory.
 - `@niivue/niivue` for 3D cortex and sub-cortical mesh rendering
 - Inline styles (no Tailwind in shipped components)
 
-## Quick start
-
+## To use
+Make sure you have node.js installed (18+)
+git clone https://github.com/<you>/epinav-prototype.
+git epinav-prototype                                                                                                        
+cd epinav-prototype                                                                                                                 
 ```bash
 npm install
 npm run dev
