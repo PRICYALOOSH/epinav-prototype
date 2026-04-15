@@ -29,6 +29,8 @@ const buildFinalTrajectories = (reviewState) => {
   const keptTargets = reviewState?.keptTargets || [];
   const targetMap = new Map(keptTargets.map((target) => [target.id, target]));
   const selections = Array.isArray(reviewState?.selections) ? reviewState.selections : [];
+  const entryStyleMode =
+    reviewState?.sourceMode === 'A' || reviewState?.sourceMode === 'D2';
 
   return selections
     .map((selection, index) => {
@@ -41,18 +43,18 @@ const buildFinalTrajectories = (reviewState) => {
       const riskPct =
         typeof selection.riskPct === 'number' ? selection.riskPct : Math.max(0, 100 - scorePct);
       const label =
-        reviewState?.sourceMode === 'A'
+        entryStyleMode
           ? `${selection.targetId} ${selection.entryLabel}`
           : `${selection.pinLabel} ${selection.targetId}`;
 
       return {
         id:
-          reviewState?.sourceMode === 'A'
+          entryStyleMode
             ? `final-${selection.targetId}-${selection.entryId || index}`
             : `final-${selection.pinId || index}`,
         label,
         shortLabel:
-          reviewState?.sourceMode === 'A'
+          entryStyleMode
             ? `${selection.targetId}/${selection.entryLabel}`
             : `${selection.pinLabel}/${selection.targetId}`,
         targetId: selection.targetId,
@@ -62,8 +64,7 @@ const buildFinalTrajectories = (reviewState) => {
         scorePct,
         riskPct,
         lengthMm: dist3(targetPosition, entryPosition),
-        sourceLabel:
-          reviewState?.sourceMode === 'A' ? selection.entryLabel : selection.pinLabel,
+        sourceLabel: entryStyleMode ? selection.entryLabel : selection.pinLabel,
       };
     })
     .filter(Boolean)
@@ -323,7 +324,7 @@ export default function FinalReviewScreen({
                     ['Final safety', `${activeTrajectory.scorePct}%`],
                     ['Final risk', `${activeTrajectory.riskPct}%`],
                     ['Length', `${activeTrajectory.lengthMm.toFixed(1)} mm`],
-                    ['Source mode', reviewState.sourceMode],
+                    ['Source mode', reviewState.sourceModeLabel || reviewState.sourceMode],
                   ].map(([label, value]) => (
                     <div
                       key={label}

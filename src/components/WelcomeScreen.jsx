@@ -29,7 +29,7 @@ const stages = [
   },
 ];
 
-export default function WelcomeScreen({ onBegin }) {
+export default function WelcomeScreen({ onSelectMode }) {
   return (
     <div
       className="screen-enter"
@@ -64,7 +64,7 @@ export default function WelcomeScreen({ onBegin }) {
             textTransform: 'uppercase',
           }}
         >
-          EpiNav · CAP Assessment
+          EpiNav CAP Assessment
         </div>
         <h1
           style={{
@@ -83,12 +83,12 @@ export default function WelcomeScreen({ onBegin }) {
             lineHeight: 1.55,
             color: palette.textMuted,
             margin: 0,
-            marginBottom: 36,
+            marginBottom: 24,
           }}
         >
           A redesigned planning workflow for SEEG electrode implantation in
-          drug-resistant focal epilepsy. You'll select targets, explore entry
-          regions, and confirm a single trajectory across three short stages.
+          drug-resistant focal epilepsy. Choose the previous staged draft or
+          the new combined draft workspace.
         </p>
 
         <div
@@ -96,7 +96,7 @@ export default function WelcomeScreen({ onBegin }) {
             display: 'flex',
             flexDirection: 'column',
             gap: 12,
-            marginBottom: 40,
+            marginBottom: 32,
           }}
         >
           {stages.map((s) => (
@@ -141,33 +141,52 @@ export default function WelcomeScreen({ onBegin }) {
           ))}
         </div>
 
-        <button
-          onClick={onBegin}
-          style={{
-            display: 'block',
-            width: '100%',
-            padding: '16px 24px',
-            borderRadius: 10,
-            border: 'none',
-            background: palette.accent,
-            color: '#04211A',
-            fontSize: 15,
-            fontWeight: 700,
-            letterSpacing: 0.5,
-            transition: 'transform 0.12s ease, box-shadow 0.12s ease',
-            boxShadow: '0 6px 24px rgba(0, 212, 170, 0.25)',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'translateY(-1px)';
-            e.currentTarget.style.boxShadow = '0 10px 32px rgba(0, 212, 170, 0.4)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = '0 6px 24px rgba(0, 212, 170, 0.25)';
-          }}
-        >
-          Begin →
-        </button>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <button
+            onClick={() => onSelectMode('draft1')}
+            style={{
+              display: 'block',
+              width: '100%',
+              padding: '16px 24px',
+              borderRadius: 10,
+              border: `1px solid ${palette.border}`,
+              background: palette.surface2,
+              color: palette.text,
+              fontSize: 15,
+              fontWeight: 700,
+              letterSpacing: 0.4,
+            }}
+          >
+            Enter Draft 1
+          </button>
+          <button
+            onClick={() => onSelectMode('draft2')}
+            style={{
+              display: 'block',
+              width: '100%',
+              padding: '16px 24px',
+              borderRadius: 10,
+              border: 'none',
+              background: palette.accent,
+              color: '#04211A',
+              fontSize: 15,
+              fontWeight: 700,
+              letterSpacing: 0.5,
+              transition: 'transform 0.12s ease, box-shadow 0.12s ease',
+              boxShadow: '0 6px 24px rgba(0, 212, 170, 0.25)',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-1px)';
+              e.currentTarget.style.boxShadow = '0 10px 32px rgba(0, 212, 170, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 6px 24px rgba(0, 212, 170, 0.25)';
+            }}
+          >
+            Enter Draft 2
+          </button>
+        </div>
 
         <div
           style={{
@@ -178,7 +197,7 @@ export default function WelcomeScreen({ onBegin }) {
             letterSpacing: 0.4,
           }}
         >
-          KCL · MSc Healthcare Technologies 2025–26
+          KCL MSc Healthcare Technologies 2025-26
         </div>
       </div>
     </div>

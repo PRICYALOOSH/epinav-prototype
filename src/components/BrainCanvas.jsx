@@ -77,8 +77,8 @@ const roiRectToPixels = (roiRect, width, height) => {
 };
 const isPointInsideRect = (x, y, rect) =>
   !!rect && x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
-const collectProjectedSampleIds = (runtime, canvasNode, samples, roiRect) => {
-  if (!runtime || !canvasNode || !Array.isArray(samples) || !roiRect) return [];
+const collectProjectedItemIds = (runtime, canvasNode, items, roiRect) => {
+  if (!runtime || !canvasNode || !Array.isArray(items) || !roiRect) return [];
   const ltwh = [0, 0, canvasNode.width, canvasNode.height];
   const [mvpMatrix] = runtime.calculateMvpMatrix(
     null,
@@ -89,9 +89,11 @@ const collectProjectedSampleIds = (runtime, canvasNode, samples, roiRect) => {
   const pixelRect = roiRectToPixels(roiRect, canvasNode.width, canvasNode.height);
   const ids = [];
 
-  for (let i = 0; i < samples.length; i++) {
-    const sample = samples[i];
-    const screenPoint = runtime.calculateScreenPoint(sample.position, mvpMatrix, ltwh);
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
+    if (!item?.id || !Array.isArray(item.position)) continue;
+
+    const screenPoint = runtime.calculateScreenPoint(item.position, mvpMatrix, ltwh);
     if (
       !Number.isFinite(screenPoint[0]) ||
       !Number.isFinite(screenPoint[1]) ||
@@ -101,12 +103,16 @@ const collectProjectedSampleIds = (runtime, canvasNode, samples, roiRect) => {
     ) {
       continue;
     }
+
     if (isPointInsideRect(screenPoint[0], screenPoint[1], pixelRect)) {
-      ids.push(sample.id);
+      ids.push(item.id);
     }
   }
 
   return ids;
+};
+const collectProjectedSampleIds = (runtime, canvasNode, samples, roiRect) => {
+  return collectProjectedItemIds(runtime, canvasNode, samples, roiRect);
 };
 
 const scalePtsAboutCentroid = (pts, factor) => {
@@ -206,11 +212,13 @@ export default function BrainCanvas({
   roiRect = null,
   roiSampleIds = null,
   roiEditEnabled = false,
+  roiSelectionItems = null,
   onRegionsReady = null,
   onHoverPoint = null,
   onCommitHover = null,
   onRoiChange = null,
   onRoiSampleIdsChange = null,
+  onRoiSelectionIdsChange = null,
   onSurfaceReady = null,
 }) {
   const canvasRef = useRef(null);
@@ -352,7 +360,7 @@ export default function BrainCanvas({
                 false
               );
               nv.addMesh(amygMesh);
-              nv.setMeshProperty(amygMesh.id, 'opacity', 0);
+              nv.setMeshProperty(amygMesh.id, 'opacity', 0.9);
               amygdalaRef.current = amygMesh;
             }
           }
@@ -406,10 +414,6 @@ export default function BrainCanvas({
   }, [mode]);
 
   useEffect(() => {
-    if (mode !== 'entry') {
-      setRoiDraftRect(null);
-      return;
-    }
     if (!roiEditEnabled) {
       setRoiDraftRect(null);
       roiDragRef.current = null;
@@ -464,7 +468,16 @@ export default function BrainCanvas({
       setRoiDraftRect(null);
       if (nextRect) {
         onRoiChange(nextRect);
-        if (onRoiSampleIdsChange) {
+        if (onRoiSelectionIdsChange) {
+          onRoiSelectionIdsChange(
+            collectProjectedItemIds(
+              nvRef.current,
+              canvasRef.current,
+              roiSelectionItems || [],
+              nextRect
+            )
+          );
+        } else if (onRoiSampleIdsChange) {
           onRoiSampleIdsChange(
             collectProjectedSampleIds(
               nvRef.current,
@@ -488,7 +501,15 @@ export default function BrainCanvas({
       roiDragRef.current = null;
       setRoiDraftRect(null);
     };
-  }, [hoverSamples, mode, onRoiChange, onRoiSampleIdsChange, roiEditEnabled]);
+  }, [
+    hoverSamples,
+    mode,
+    onRoiChange,
+    onRoiSampleIdsChange,
+    onRoiSelectionIdsChange,
+    roiEditEnabled,
+    roiSelectionItems,
+  ]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -626,15 +647,19 @@ export default function BrainCanvas({
     const edges = [];
 
     if (mode === 'structures' || mode === 'heatmap') {
+      const visibleSet =
+        visibleTargetIds && visibleTargetIds.length > 0 ? new Set(visibleTargetIds) : null;
+
       for (let i = 0; i < targets.length; i++) {
         const target = targets[i];
+        const highlighted = visibleSet ? visibleSet.has(target.id) : i === activeIdx;
         nodes.push({
           name: target.name || target.id,
           x: target.position[0],
           y: target.position[1],
           z: target.position[2],
-          colorValue: i === activeIdx ? activeColorValue : 0,
-          sizeValue: 0.35,
+          colorValue: highlighted ? colorValueForTargetIdx(i) : 0,
+          sizeValue: target.id === activeTargetId ? 0.38 : highlighted ? 0.32 : 0.24,
         });
       }
 
@@ -761,6 +786,8 @@ export default function BrainCanvas({
     }
 
     if (mode === 'final' && Array.isArray(finalTrajectories) && finalTrajectories.length > 0) {
+      const visibleSet =
+        visibleTargetIds && visibleTargetIds.length > 0 ? new Set(visibleTargetIds) : null;
       const activeTrajectory =
         finalTrajectories.find((trajectory) => trajectory.id === activeFinalTrajectoryId) ||
         finalTrajectories[0];
@@ -768,6 +795,7 @@ export default function BrainCanvas({
 
       for (let i = 0; i < targets.length; i++) {
         const target = targets[i];
+        if (visibleSet && !visibleSet.has(target.id)) continue;
         const highlighted = target.id === activeTrajectory?.targetId;
         nodes.push({
           name: target.name || target.id,
@@ -794,22 +822,30 @@ export default function BrainCanvas({
             colorValue: activeColor,
           });
         }
+      }
 
+      for (let i = 0; i < finalTrajectories.length; i++) {
+        const trajectory = finalTrajectories[i];
+        if (visibleSet && !visibleSet.has(trajectory.targetId)) continue;
+
+        const targetIndex = targets.findIndex((target) => target.id === trajectory.targetId);
+        const colorValue =
+          targetIndex >= 0 ? colorValueForTargetIdx(targetIndex) : ENTRY_INACTIVE_COLOR_VALUE;
         nodes.push({
-          name: activeTrajectory.label || 'Final trajectory',
-          x: activeTrajectory.entryPosition[0],
-          y: activeTrajectory.entryPosition[1],
-          z: activeTrajectory.entryPosition[2],
-          colorValue: activeColor,
-          sizeValue: 1.32,
+          name: trajectory.label || `Trajectory ${i + 1}`,
+          x: trajectory.entryPosition[0],
+          y: trajectory.entryPosition[1],
+          z: trajectory.entryPosition[2],
+          colorValue,
+          sizeValue: trajectory.id === activeTrajectory?.id ? 1.32 : 0.84,
         });
         const entryNodeIndex = nodes.length - 1;
-        const targetNodeIndex = targetNodeIndexById.get(activeTrajectory.targetId);
+        const targetNodeIndex = targetNodeIndexById.get(trajectory.targetId);
         if (typeof targetNodeIndex === 'number') {
           edges.push({
             first: targetNodeIndex,
             second: entryNodeIndex,
-            colorValue: activeColor,
+            colorValue,
           });
         }
       }
@@ -831,7 +867,14 @@ export default function BrainCanvas({
       edgeColormapNegative: '',
       edgeMin: 0,
       edgeMax: 1,
-      edgeScale: mode === 'final' ? 0.88 : mode === 'entry' ? 0.34 : 0.15,
+      edgeScale:
+        mode === 'final'
+          ? 1.4
+          : mode === 'entry'
+            ? entryView === 'hover'
+              ? 0.95
+              : 0.85
+            : 0.15,
       legendLineThickness: 0,
       showLegend: false,
       nodes,
@@ -968,7 +1011,7 @@ export default function BrainCanvas({
           if (amygdalaRef.current) {
             nv.setMeshProperty(
               amygdalaRef.current.id,
-              mode === 'heatmap' ? 1 : mode === 'final' ? 0.28 : 0.95
+              mode === 'heatmap' ? 1 : mode === 'final' ? 0.9 : 0.95
             );
           }
         } else {
